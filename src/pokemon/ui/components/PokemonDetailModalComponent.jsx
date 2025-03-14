@@ -5,7 +5,6 @@ import { bgColorByTypesConst } from '@/pokemon/domain/constants/bgColorByTypesCo
 
 export const PokemonDetailModal = ({ isOpen, closeModal, pokemon }) => {
   if (!isOpen) return null;
-  console.log(pokemon)
   const [imageSrc, setImageSrc] = useState(pokemon.sprite);
 
   const handleError = useCallback(() => {
@@ -19,11 +18,11 @@ export const PokemonDetailModal = ({ isOpen, closeModal, pokemon }) => {
       onClick={closeModal}
     >
       <div
-        className="bg-red-500 border-8 border-yellow-400 p-4 rounded-2xl w-full max-w-md max-h-[80vh] overflow-y-auto relative"
+        className="bg-red-500 border-8 border-yellow-400 p-4 rounded-2xl max-w-md max-h-[80vh] overflow-y-auto relative no-scrollbar"
         onClick={(e) => e.stopPropagation()}
       >
         <button
-          className="absolute top-2 right-2 text-xl text-white bg-gray-800 p-2 rounded-full"
+          className="absolute top-2 right-2 text-xs text-white bg-gray-800 p-2 rounded-full"
           onClick={closeModal}
         >
           ✖
@@ -33,7 +32,7 @@ export const PokemonDetailModal = ({ isOpen, closeModal, pokemon }) => {
           <div className="bg-white p-4 rounded-lg shadow-md mb-4 w-32 h-32 sm:w-48 sm:h-48 md:w-64 md:h-64">
             <img
               src={imageSrc}
-              alt={`Image of ${pokemon.name} Pokémon`}
+              alt={`Image of ${pokemon.name} Pokemon`}
               className="w-full h-full object-contain"
               onError={handleError}
             />

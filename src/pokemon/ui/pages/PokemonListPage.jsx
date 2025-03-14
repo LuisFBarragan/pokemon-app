@@ -11,8 +11,9 @@ import { localStorageService } from '@/core/utils/localStorageService';
 import { getPokemonListFromApi } from '@/pokemon/application/services/getPokemonListFromApi ';
 import 'react-toastify/dist/ReactToastify.css';
 import { capitalizeFirstLetter } from '@/core/utils/capitalizeFirstLetter';
-import { fetchLocalPokemonDetail, fetchPokemonDetail , fetchSearchPokemon} from '@/pokemon/application/services/fetchPokemonDetail';
+import { fetchLocalPokemonDetail, fetchPokemonDetail, fetchSearchPokemon } from '@/pokemon/application/services/fetchPokemonDetail';
 import { Pokemon } from '@/pokemon/domain/entities/Pokemon';
+
 const ITEMS_PER_PAGE = 10;
 
 export const PokemonListPage = () => {
@@ -53,7 +54,7 @@ export const PokemonListPage = () => {
         setTotalPokemons(count);
 
       } catch (error) {
-        setError('Failed to fetch Pokémon data.');
+        setError('Failed to fetch Pokemon data.');
       } finally {
         setLoading(false);
       }
@@ -63,12 +64,14 @@ export const PokemonListPage = () => {
   }, [ITEMS_PER_PAGE, currentPage]);
 
   const handleOpenPokemonDetail = async (pokemon) => {
+    setLoading(true);
     const pokemonDetail = pokemon.apiOrigin
       ? await fetchPokemonDetail(pokemon.url)
       : fetchLocalPokemonDetail(pokemon.name);
 
     setPokemonData(pokemonDetail);
     setShowModal(true);
+    setLoading(false);
   };
 
   const validatePokemonName = (name) => {
@@ -80,7 +83,7 @@ export const PokemonListPage = () => {
     return true;
   };
   const handleAddPokemon = () => {
-    if(!validatePokemonName(newPokemonName)) return;
+    if (!validatePokemonName(newPokemonName)) return;
 
     setLoading(true);
     const cacheKey = getCacheKey(ITEMS_PER_PAGE, currentPage);
@@ -88,55 +91,72 @@ export const PokemonListPage = () => {
     const newPokemon = new Pokemon(newPokemonName, '#', false);
     const updatedPokemonList = [...cachedData.results, newPokemon]
     setPokemonList(updatedPokemonList);
-    localStorageService.setItem(cacheKey, {results: updatedPokemonList, count: cachedData.count});
+    localStorageService.setItem(cacheKey, { results: updatedPokemonList, count: cachedData.count });
     setLoading(false);
     toast.success(`New Pokemon "${newPokemonName}" added.`);
   };
 
   const handleSearchPokemon = async () => {
-    if(!validateTextEmpty(filterPokemon)) return;
+    if (!validatePokemonName(filterPokemon)) return;
 
     setLoading(true);
     const pokemon = await fetchSearchPokemon(filterPokemon);
-    if(pokemon !== null){
+    if (pokemon !== null) {
       setPokemonData(pokemon);
       setShowModal(true);
       setFilterPokemon('');
     }
-    else{
+    else {
       toast.error('Pokemon not found.');
     }
     setLoading(false);
   }
 
   return (
-    <div className="p-4">
-
-
+    <div className="p-4 mt-[-5%]">
       {error && <PokemonErrorComponent message={error} />}
       {loading && <PokeballLoading />}
 
       <ToastContainer />
 
-      {/* Modal for Pokémon detail */}
       <PokemonDetailModal isOpen={showModal} closeModal={() => setShowModal(false)} pokemon={pokemonData} />
 
       <TitleComponent>Pokemon List</TitleComponent>
-      <div className="container mx-auto p-4 flex flex-col items-center">
-        {/* Search input field */}
-        <div className="mb-4">
-          <input
-            type="text"
-            placeholder="Search Pokemon"
-            className="p-2 border rounded"
-            onChange={(e) => setFilterPokemon(e.target.value)}
-            value={filterPokemon}
-          />
-          <ButtonComponent onClick={handleSearchPokemon}>Search</ButtonComponent>
+      <div className="container">
+        <div className='pb-4'>
+          <div className="flex flex-wrap justify-between gap-4">
+            {/* Search input field */}
+            <div className="flex flex-col items-center gap-2 w-full sm:w-auto">
+              <div className='flex flex-row w-full sm:w-auto'>
+                <input
+                  type="text"
+                  placeholder="Search Pokemon"
+                  className="p-2 border rounded mr-2 w-full sm:w-auto"
+                  onChange={(e) => setFilterPokemon(e.target.value)}
+                  value={filterPokemon}
+                />
+                <ButtonComponent onClick={handleSearchPokemon}>Search</ButtonComponent>
+              </div>
+            </div>
+
+            {/* Add Pokemon */}
+            <div className="flex flex-col items-center gap-2 w-full sm:w-auto">
+              <div className='flex flex-row w-full sm:w-auto'>
+                <input
+                  type="text"
+                  placeholder="Add Pokemon"
+                  className="p-2 border rounded mr-2 w-full sm:w-auto"
+                  onChange={(e) => setNewPokemonName(e.target.value)}
+                  value={newPokemonName}
+                />
+                <ButtonComponent onClick={handleAddPokemon}>Add Pokemon</ButtonComponent>
+              </div>
+            </div>
+          </div>
         </div>
 
-        {/* Display Pokémon cards */}
-        <div className="grid grid-cols-2 gap-5">
+        {/* Display Pokemon cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
           {pokemonList.map((pokemon, index) => (
             <CardComponent key={index} onClick={() => handleOpenPokemonDetail(pokemon)}>
               <p className="text-lg font-semibold text-gray-800">{capitalizeFirstLetter(pokemon.name)}</p>
@@ -152,18 +172,6 @@ export const PokemonListPage = () => {
             onPageChange={setCurrentPage}
           />
         )}
-
-        {/* Add Pokemon */}
-        <div className="mt-4">
-          <input
-            type="text"
-            placeholder="Add Pokémon"
-            className="p-2 border rounded mr-2"
-            onChange={(e) => setNewPokemonName(e.target.value)}
-            value={newPokemonName}
-          />
-          <ButtonComponent onClick={handleAddPokemon}>Add Pokémon</ButtonComponent>
-        </div>
       </div>
     </div>
   );
