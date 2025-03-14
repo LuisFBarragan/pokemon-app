@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import { usePokemonList } from '@/pokemon/application/hooks/usePokemonList ';
 import { ButtonComponent } from '../components/ButtonComponent';
 import { CardComponent } from '../components/CardComponent';
 import { PokemonDetailModal } from '../components/PokemonDetailModalComponent';
@@ -11,7 +10,9 @@ import { ToastContainer, toast } from 'react-toastify';
 import { localStorageService } from '@/core/utils/localStorageService';
 import { getPokemonListFromApi } from '@/pokemon/application/services/getPokemonListFromApi ';
 import 'react-toastify/dist/ReactToastify.css';
-
+import { capitalizeFirstLetter } from '@/core/utils/capitalizeFirstLetter';
+import { fetchLocalPokemonDetail, fetchPokemonDetail , fetchSearchPokemon} from '@/pokemon/application/services/fetchPokemonDetail';
+import { Pokemon } from '@/pokemon/domain/entities/Pokemon';
 const ITEMS_PER_PAGE = 10;
 
 export const PokemonListPage = () => {
@@ -23,8 +24,12 @@ export const PokemonListPage = () => {
   const [totalPokemons, setTotalPokemons] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [filterPokemon, setFilterPokemon] = useState('');
 
   const CACHE_EXPIRATION_TIME = 3600000;
+
+  const getCacheKey = (limit, offset) => `pokemon-list-${limit}-${offset}`;
+
   useEffect(() => {
     const fetchPokemon = async () => {
       setLoading(true);
@@ -37,6 +42,7 @@ export const PokemonListPage = () => {
           const cacheTimestamp = localStorageService.getItem(`${cacheKey}-timestamp`);
           if (Date.now() - cacheTimestamp < CACHE_EXPIRATION_TIME) {
             setPokemonList(cachedData.results);
+            setTotalPokemons(cachedData.count);
             setLoading(false);
             return;
           }
@@ -44,10 +50,7 @@ export const PokemonListPage = () => {
 
         const { results, count } = await getPokemonListFromApi(ITEMS_PER_PAGE, currentPage);
         setPokemonList(results);
-        setTotalPokemons(count)
-
-        localStorageService.setItem(cacheKey, { results });
-        localStorageService.setItem(`${cacheKey}-timestamp`, Date.now().toString());
+        setTotalPokemons(count);
 
       } catch (error) {
         setError('Failed to fetch Pokémon data.');
@@ -59,28 +62,59 @@ export const PokemonListPage = () => {
     fetchPokemon();
   }, [ITEMS_PER_PAGE, currentPage]);
 
+  const handleOpenPokemonDetail = async (pokemon) => {
+    const pokemonDetail = pokemon.apiOrigin
+      ? await fetchPokemonDetail(pokemon.url)
+      : fetchLocalPokemonDetail(pokemon.name);
 
-
-  const handleOpenPokemonDetail = (pokemon) => {
-    setPokemonData(pokemon);
+    setPokemonData(pokemonDetail);
     setShowModal(true);
   };
 
-  const handleAddPokemon = () => {
-    if (newPokemonName.trim() === '') {
-      toast.error('The Pokémon name cannot be empty.');
-      return;
+  const validatePokemonName = (name) => {
+    if (name.trim() === '') {
+      toast.error('The Pokemon name cannot be empty.');
+      return false;
     }
 
-    toast.success(`New Pokémon "${newPokemonName}" added.`);
+    return true;
   };
+  const handleAddPokemon = () => {
+    if(!validatePokemonName(newPokemonName)) return;
+
+    setLoading(true);
+    const cacheKey = getCacheKey(ITEMS_PER_PAGE, currentPage);
+    const cachedData = localStorageService.getItem(cacheKey);
+    const newPokemon = new Pokemon(newPokemonName, '#', false);
+    const updatedPokemonList = [...cachedData.results, newPokemon]
+    setPokemonList(updatedPokemonList);
+    localStorageService.setItem(cacheKey, {results: updatedPokemonList, count: cachedData.count});
+    setLoading(false);
+    toast.success(`New Pokemon "${newPokemonName}" added.`);
+  };
+
+  const handleSearchPokemon = async () => {
+    if(!validateTextEmpty(filterPokemon)) return;
+
+    setLoading(true);
+    const pokemon = await fetchSearchPokemon(filterPokemon);
+    if(pokemon !== null){
+      setPokemonData(pokemon);
+      setShowModal(true);
+      setFilterPokemon('');
+    }
+    else{
+      toast.error('Pokemon not found.');
+    }
+    setLoading(false);
+  }
 
   return (
     <div className="p-4">
 
-      {loading && <PokeballLoading />}
 
       {error && <PokemonErrorComponent message={error} />}
+      {loading && <PokeballLoading />}
 
       <ToastContainer />
 
@@ -93,18 +127,19 @@ export const PokemonListPage = () => {
         <div className="mb-4">
           <input
             type="text"
-            placeholder="Search Pokémon"
+            placeholder="Search Pokemon"
             className="p-2 border rounded"
-            onChange={(e) => setNewPokemonName(e.target.value)} // Update search query
-            value={newPokemonName}
+            onChange={(e) => setFilterPokemon(e.target.value)}
+            value={filterPokemon}
           />
+          <ButtonComponent onClick={handleSearchPokemon}>Search</ButtonComponent>
         </div>
 
         {/* Display Pokémon cards */}
         <div className="grid grid-cols-2 gap-5">
           {pokemonList.map((pokemon, index) => (
             <CardComponent key={index} onClick={() => handleOpenPokemonDetail(pokemon)}>
-              <p className="text-lg font-semibold text-gray-800">{pokemon.name}</p>
+              <p className="text-lg font-semibold text-gray-800">{capitalizeFirstLetter(pokemon.name)}</p>
             </CardComponent>
           ))}
         </div>

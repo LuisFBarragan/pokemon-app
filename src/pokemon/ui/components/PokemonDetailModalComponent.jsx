@@ -1,11 +1,11 @@
-import { useState } from 'react';
+import React, { useState,  useCallback } from 'react';
 import { capitalizeFirstLetter } from "@/core/utils/capitalizeFirstLetter";
 import { pokemonImages } from "@/pokemon/assets/imagesIndex";
 import { bgColorByTypesConst } from '@/pokemon/domain/constants/bgColorByTypesConst';
 
 export const PokemonDetailModal = ({ isOpen, closeModal, pokemon }) => {
   if (!isOpen) return null;
-
+  console.log(pokemon)
   const [imageSrc, setImageSrc] = useState(pokemon.sprite);
 
   const handleError = useCallback(() => {
@@ -60,7 +60,9 @@ export const PokemonDetailModal = ({ isOpen, closeModal, pokemon }) => {
                   key={stat.name}
                   className="flex justify-between items-center text-gray-700"
                 >
-                  <span className="capitalize font-medium">{stat.name.replace('-', ' ')}</span>
+                  <span className="capitalize font-medium">
+                    {stat.name && stat.name.replace('-', ' ')}
+                  </span>
                   <span className="bg-red-300 text-red-800 px-2 py-1 rounded-lg">
                     {stat.baseStat}
                   </span>

@@ -1,14 +1,13 @@
 import { PokemonDetail } from '@/pokemon//domain/entities/PokemonDetail';
-import { getPokemonDetailByUrl } from '@/pokemon/infrastructure/pokemonApi';
-import { pokemonImages } from '../assets/imagesIndex';
+import { getPokemonByName, getPokemonDetailByUrl } from '@/pokemon/infrastructure/pokemonApi';
 import { localStorageService } from '@/core/utils/localStorageService';
+import { pokemonImages } from '@/pokemon/assets/imagesIndex';
 
 const CACHE_EXPIRATION_TIME = 3600000;
 
 export const fetchPokemonDetail = async (url) => {
   const cacheKey = `pokemon-detail-${url}`;
   const cacheTimestampKey = `${cacheKey}-timestamp`;
-
   const cachedData = localStorageService.getItem(cacheKey);
   const cachedTimestamp = localStorageService.getItem(cacheTimestampKey);
 
@@ -18,6 +17,7 @@ export const fetchPokemonDetail = async (url) => {
 
   try {
     const data = await getPokemonDetailByUrl(url);
+
     const pokemonDetail = new PokemonDetail(
       data.id,
       data.name,
@@ -56,14 +56,52 @@ export const fetchLocalPokemonDetail = (name) => {
     ],
     height: 0
   };
-  console.log(unknownPokemon)
 
   return new PokemonDetail(
     unknownPokemon.id,
     unknownPokemon.name,
     unknownPokemon.sprite,
-    unknownPokemon.types,
-    unknownPokemon.stats,
+    unknownPokemon.types.map(type => type),
+    unknownPokemon.stats.map(stat => ({
+      name: stat.stat.name,
+      baseStat: stat.base_stat,
+    })),
     unknownPokemon.height,
   );
+};
+
+export const fetchSearchPokemon = async (name) => {
+  const cacheKey = `pokemon-search-pokemon-${name}`;
+  const cacheTimestampKey = `${cacheKey}-timestamp`;
+
+  const cachedData = localStorageService.getItem(cacheKey);
+  const cachedTimestamp = localStorageService.getItem(cacheTimestampKey);
+
+  if (cachedData && cachedTimestamp && Date.now() - cachedTimestamp < CACHE_EXPIRATION_TIME) {
+    return cachedData;
+  }
+
+  try {
+    const data = await getPokemonByName(name);
+
+    const pokemonDetail = new PokemonDetail(
+      data.id,
+      data.name,
+      data.sprites.front_default,
+      data.types.map(type => type.type.name),
+      data.stats.map(stat => ({
+        name: stat.stat.name,
+        baseStat: stat.base_stat,
+      })),
+      data.height
+    );
+
+    localStorageService.setItem(cacheKey, pokemonDetail);
+    localStorageService.setItem(cacheTimestampKey, Date.now().toString());
+
+    return pokemonDetail;
+
+  } catch (error) {
+    return null;
+  }
 };

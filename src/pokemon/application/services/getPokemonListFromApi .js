@@ -16,7 +16,6 @@ export const getPokemonListFromApi = async (limit, offset) => {
   }
 
   const data = await getPokemon(limit, offset);
-
   localStorageService.setItem(cacheKey, {
     results: data.results.map((p) => new Pokemon(p.name, p.url, true)),
     count: data.count,
