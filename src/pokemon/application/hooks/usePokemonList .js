@@ -35,7 +35,7 @@ export const usePokemonList = (limit, offset, handleUpdateState) => {
         localStorageService.setItem(`${cacheKey}-timestamp`, Date.now().toString());
 
       } catch (error) {
-        setError('Failed to fetch Pokémon data.');
+        setError('Failed to fetch Pokemon data.');
       } finally {
         setLoading(false);
       }

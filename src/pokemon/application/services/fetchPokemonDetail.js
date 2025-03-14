@@ -36,7 +36,7 @@ export const fetchPokemonDetail = async (url) => {
     return pokemonDetail;
 
   } catch (error) {
-    throw new Error(`Error fetching Pokémon details: ${error.message}`);
+    throw new Error(`Error fetching Pokemon details: ${error.message}`);
   }
 };
 
